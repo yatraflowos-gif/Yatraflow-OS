@@ -8,6 +8,16 @@ const names = [
   'Arjun Patel', 'Sneha Iyer', 'Rohit Chauhan', 'Meera Kapoor', 'Dev Sharma',
   'Karan Mehta', 'Gupta Family', 'Delhi Corporate Group', 'Amit Family', 'Neha Group'
 ]
+const teamMembers = ['Neha Verma', 'Rohit Negi', 'Anjali Thakur', 'Sandeep R.']
+const priorities = ['High', 'Medium', 'Low']
+const followUpReasons = [
+  'Share quotation', 'Provide hotel list', 'Confirm dates', 'Discuss itinerary',
+  'Share detailed cost', 'Ask about permits', 'Send updated plan', 'Share package info',
+]
+const conversationNotes = [
+  'Discussed itinerary', 'Asked about hotels', 'Group of 8 pax', 'Requested itinerary',
+  'Asked for package', 'Discussed cost', 'Asked about permits',
+]
 
 function randomFrom(arr) {
   return arr[Math.floor(Math.random() * arr.length)]
@@ -23,9 +33,10 @@ function daysAgoISO(days) {
   return d.toISOString()
 }
 
-function daysFromNowISO(days) {
+function daysFromNowISO(days, hour) {
   const d = new Date()
   d.setDate(d.getDate() + days)
+  if (hour !== undefined) d.setHours(hour, 0, 0, 0)
   return d.toISOString()
 }
 
@@ -58,7 +69,7 @@ export function generateLeads(customers, count = 12) {
       budget: (Math.floor(Math.random() * 20) + 2) * 10000,
       source: randomFrom(sources),
       status: randomFrom(statuses),
-      assignedTo: randomFrom(['Neha Verma', 'Rohit Negi', 'Anjali Thakur', 'Sandeep R.']),
+      assignedTo: randomFrom(teamMembers),
       lastContact: daysAgoISO(Math.floor(Math.random() * 10)),
       nextFollowUp: daysFromNowISO(Math.floor(Math.random() * 7) + 1),
       notes: 'Interested in adventure activities. Needs itinerary with cost breakdown.',
@@ -67,9 +78,28 @@ export function generateLeads(customers, count = 12) {
   })
 }
 
-export function generateFollowUps(leads, count = 8) {
+// Follow-ups now generated with a realistic spread: some today (morning/afternoon/evening),
+// some upcoming, and a couple deliberately overdue — matching the reference dashboard layout.
+export function generateFollowUps(leads, count = 18) {
+  const timeBuckets = [9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20]
   return Array.from({ length: count }).map((_, i) => {
     const lead = randomFrom(leads)
+    let scheduledFor
+    let status = 'Pending'
+
+    if (i < 2) {
+      // overdue: yesterday or two days ago
+      scheduledFor = daysFromNowISO(-(1 + Math.floor(Math.random() * 2)), randomFrom(timeBuckets))
+    } else if (i < 13) {
+      // today, spread across the day
+      scheduledFor = daysFromNowISO(0, timeBuckets[i % timeBuckets.length])
+    } else {
+      // upcoming, next 1-6 days
+      scheduledFor = daysFromNowISO(1 + Math.floor(Math.random() * 6), randomFrom(timeBuckets))
+    }
+
+    if (Math.random() > 0.75) status = 'Done'
+
     return {
       id: uid('fu'),
       leadId: lead.id,
@@ -77,8 +107,13 @@ export function generateFollowUps(leads, count = 8) {
       phone: lead.phone,
       destination: lead.destination,
       type: randomFrom(['Call', 'WhatsApp', 'Email']),
-      scheduledFor: daysFromNowISO(Math.floor(Math.random() * 5)),
-      status: randomFrom(['Pending', 'Done', 'Missed']),
+      scheduledFor,
+      status,
+      priority: randomFrom(priorities),
+      reason: randomFrom(followUpReasons),
+      lastConversation: randomFrom(conversationNotes),
+      enquiryRef: `#ENQ-${1200 + i}`,
+      assignedTo: randomFrom(teamMembers),
       notes: '',
     }
   })
@@ -138,7 +173,7 @@ export function generatePayments(bookings, count = 5) {
 export function generateAllDemoData() {
   const customers = generateCustomers(15)
   const leads = generateLeads(customers, 12)
-  const followUps = generateFollowUps(leads, 8)
+  const followUps = generateFollowUps(leads, 18)
   const quotations = generateQuotations(leads, 8)
   const bookings = generateBookings(quotations, 6)
   const payments = generatePayments(bookings, 5)
