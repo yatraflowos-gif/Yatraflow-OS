@@ -18,6 +18,11 @@ const conversationNotes = [
   'Discussed itinerary', 'Asked about hotels', 'Group of 8 pax', 'Requested itinerary',
   'Asked for package', 'Discussed cost', 'Asked about permits',
 ]
+const taskTitles = [
+  'Update website package prices', 'Call hotel vendor for rates', 'Prepare Diwali offer banner',
+  'Renew travel insurance tie-up', 'Follow up with Ladakh permit office', 'Review driver contracts',
+  'Post Instagram reel for Spiti', 'Reconcile this week\'s payments',
+]
 
 function randomFrom(arr) {
   return arr[Math.floor(Math.random() * arr.length)]
@@ -78,8 +83,6 @@ export function generateLeads(customers, count = 12) {
   })
 }
 
-// Follow-ups now generated with a realistic spread: some today (morning/afternoon/evening),
-// some upcoming, and a couple deliberately overdue — matching the reference dashboard layout.
 export function generateFollowUps(leads, count = 18) {
   const timeBuckets = [9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20]
   return Array.from({ length: count }).map((_, i) => {
@@ -88,13 +91,10 @@ export function generateFollowUps(leads, count = 18) {
     let status = 'Pending'
 
     if (i < 2) {
-      // overdue: yesterday or two days ago
       scheduledFor = daysFromNowISO(-(1 + Math.floor(Math.random() * 2)), randomFrom(timeBuckets))
     } else if (i < 13) {
-      // today, spread across the day
       scheduledFor = daysFromNowISO(0, timeBuckets[i % timeBuckets.length])
     } else {
-      // upcoming, next 1-6 days
       scheduledFor = daysFromNowISO(1 + Math.floor(Math.random() * 6), randomFrom(timeBuckets))
     }
 
@@ -143,18 +143,34 @@ export function generateQuotations(leads, count = 8) {
   })
 }
 
-export function generateBookings(quotations, count = 6) {
-  return quotations.slice(0, count).map((q) => ({
-    id: uid('book'),
-    quotationId: q.id,
-    customerName: q.customerName,
-    phone: q.phone,
-    destination: q.destination,
-    amount: q.amount,
-    status: randomFrom(['Confirmed', 'Pending', 'Cancelled', 'Hold']),
-    travelDate: daysFromNowISO(Math.floor(Math.random() * 40) + 5),
-    createdAt: daysAgoISO(Math.floor(Math.random() * 10)),
+function fakeItinerary(destination, days) {
+  const templates = [
+    'Arrival & local sightseeing', 'Full day excursion', 'Adventure activities day',
+    'Local market & culture', 'Scenic drive', 'Leisure day', 'Departure',
+  ]
+  return Array.from({ length: days }).map((_, i) => ({
+    day: i + 1,
+    title: i === days - 1 ? 'Departure' : `${destination} — ${templates[i % templates.length]}`,
+    description: i === 0 ? 'Pickup, hotel check-in, evening at leisure.' : 'Breakfast, planned activities, overnight stay.',
   }))
+}
+
+export function generateBookings(quotations, count = 6) {
+  return quotations.slice(0, count).map((q) => {
+    const tripDays = Math.floor(Math.random() * 4) + 3
+    return {
+      id: uid('book'),
+      quotationId: q.id,
+      customerName: q.customerName,
+      phone: q.phone,
+      destination: q.destination,
+      amount: q.amount,
+      status: randomFrom(['Confirmed', 'Pending', 'Cancelled', 'Hold']),
+      travelDate: daysFromNowISO(Math.floor(Math.random() * 40) + 5),
+      createdAt: daysAgoISO(Math.floor(Math.random() * 10)),
+      itinerary: fakeItinerary(q.destination, tripDays),
+    }
+  })
 }
 
 export function generatePayments(bookings, count = 5) {
@@ -170,6 +186,30 @@ export function generatePayments(bookings, count = 5) {
   }))
 }
 
+export function generateTasks(count = 8) {
+  return Array.from({ length: count }).map((_, i) => ({
+    id: uid('task'),
+    title: taskTitles[i % taskTitles.length],
+    priority: randomFrom(priorities),
+    status: Math.random() > 0.6 ? 'Done' : 'Pending',
+    dueDate: daysFromNowISO(Math.floor(Math.random() * 10) - 2),
+    assignedTo: randomFrom(teamMembers),
+    createdAt: daysAgoISO(Math.floor(Math.random() * 10)),
+  }))
+}
+
+export function generatePackages(count = 6) {
+  return destinations.slice(0, count).map((dest, i) => ({
+    id: uid('pkg'),
+    name: `${dest} Getaway`,
+    destination: dest,
+    duration: `${3 + (i % 4)}N / ${4 + (i % 4)}D`,
+    price: (15 + i * 5) * 1000,
+    description: `Curated ${dest} experience covering top sights, stays and local activities.`,
+    active: true,
+  }))
+}
+
 export function generateAllDemoData() {
   const customers = generateCustomers(15)
   const leads = generateLeads(customers, 12)
@@ -177,5 +217,7 @@ export function generateAllDemoData() {
   const quotations = generateQuotations(leads, 8)
   const bookings = generateBookings(quotations, 6)
   const payments = generatePayments(bookings, 5)
-  return { customers, leads, followUps, quotations, bookings, payments }
-}
+  const tasks = generateTasks(8)
+  const packages = generatePackages(6)
+  return { customers, leads, followUps, quotations, bookings, payments, tasks, packages }
+                                    }
