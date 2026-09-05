@@ -15,6 +15,11 @@ export default {
         accent: {
           500: '#2563eb',
           600: '#1d4ed8',
+        },
+        priority: {
+          high: '#ef4444',
+          medium: '#f59e0b',
+          low: '#10b981',
         }
       }
     },
