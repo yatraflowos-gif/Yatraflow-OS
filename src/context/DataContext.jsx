@@ -11,7 +11,11 @@ export function DataProvider({ children }) {
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored) {
-      setData(JSON.parse(stored))
+      const parsed = JSON.parse(stored)
+      // Backfill new collections for users with older saved data
+      if (!parsed.tasks) parsed.tasks = generateAllDemoData().tasks
+      if (!parsed.packages) parsed.packages = generateAllDemoData().packages
+      setData(parsed)
     } else {
       const fresh = generateAllDemoData()
       localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh))
@@ -78,6 +82,7 @@ export function DataProvider({ children }) {
         status: 'Confirmed',
         travelDate: quo.validTill,
         createdAt: new Date().toISOString(),
+        itinerary: [],
       }
       return {
         ...prev,
@@ -125,6 +130,42 @@ export function DataProvider({ children }) {
     setData((prev) => ({ ...prev, customers: prev.customers.filter((c) => c.id !== id) }))
   }
 
+  // ---- Tasks (general, separate from follow-ups) ----
+  function addTask(task) {
+    setData((prev) => ({ ...prev, tasks: [{ ...task, id: uid('task') }, ...prev.tasks] }))
+  }
+  function updateTask(id, updates) {
+    setData((prev) => ({
+      ...prev,
+      tasks: prev.tasks.map((t) => (t.id === id ? { ...t, ...updates } : t)),
+    }))
+  }
+  function deleteTask(id) {
+    setData((prev) => ({ ...prev, tasks: prev.tasks.filter((t) => t.id !== id) }))
+  }
+
+  // ---- Packages ----
+  function addPackage(pkg) {
+    setData((prev) => ({ ...prev, packages: [{ ...pkg, id: uid('pkg') }, ...prev.packages] }))
+  }
+  function updatePackage(id, updates) {
+    setData((prev) => ({
+      ...prev,
+      packages: prev.packages.map((p) => (p.id === id ? { ...p, ...updates } : p)),
+    }))
+  }
+  function deletePackage(id) {
+    setData((prev) => ({ ...prev, packages: prev.packages.filter((p) => p.id !== id) }))
+  }
+
+  // ---- Itineraries (day plans attached to a booking) ----
+  function setItineraryDays(bookingId, days) {
+    setData((prev) => ({
+      ...prev,
+      bookings: prev.bookings.map((b) => (b.id === bookingId ? { ...b, itinerary: days } : b)),
+    }))
+  }
+
   if (!data) return null
 
   return (
@@ -137,6 +178,9 @@ export function DataProvider({ children }) {
         updateBooking, deleteBooking,
         addPayment, updatePayment,
         addCustomer, updateCustomer, deleteCustomer,
+        addTask, updateTask, deleteTask,
+        addPackage, updatePackage, deletePackage,
+        setItineraryDays,
       }}
     >
       {children}
