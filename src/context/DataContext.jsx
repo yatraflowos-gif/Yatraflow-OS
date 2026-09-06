@@ -3,183 +3,507 @@ import { generateAllDemoData } from '../data/demoData'
 import { uid } from '../utils/formatters'
 
 const DataContext = createContext(null)
+
 const STORAGE_KEY = 'yf_data_v1'
 
 export function DataProvider({ children }) {
   const [data, setData] = useState(null)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored) {
-      const parsed = JSON.parse(stored)
-      // Backfill new collections for users with older saved data
-      if (!parsed.tasks) parsed.tasks = generateAllDemoData().tasks
-      if (!parsed.packages) parsed.packages = generateAllDemoData().packages
-      setData(parsed)
-    } else {
-      const fresh = generateAllDemoData()
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh))
-      setData(fresh)
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY)
+
+      if (stored) {
+        const parsed = JSON.parse(stored)
+
+        // Make sure all collections exist
+        const demo = generateAllDemoData()
+
+        const completeData = {
+          customers: parsed.customers || demo.customers,
+          leads: parsed.leads || demo.leads,
+          followUps: parsed.followUps || demo.followUps,
+          quotations: parsed.quotations || demo.quotations,
+          bookings: parsed.bookings || demo.bookings,
+          payments: parsed.payments || demo.payments,
+          tasks: parsed.tasks || demo.tasks,
+          packages: parsed.packages || demo.packages,
+        }
+
+        setData(completeData)
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(completeData))
+      } else {
+        const fresh = generateAllDemoData()
+
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify(fresh)
+        )
+
+        setData(fresh)
+      }
+    } catch (err) {
+      console.error('YatraFlow DataContext Error:', err)
+      setError(err)
     }
   }, [])
 
   useEffect(() => {
-    if (data) localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+    if (data) {
+      try {
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify(data)
+        )
+      } catch (err) {
+        console.error('Could not save YatraFlow data:', err)
+      }
+    }
   }, [data])
 
-  // ---- Leads ----
-  function addLead(lead) {
-    setData((prev) => ({ ...prev, leads: [{ ...lead, id: uid('lead') }, ...prev.leads] }))
+  // -------------------------
+  // Loading / Error
+  // -------------------------
+
+  if (error) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          padding: '24px',
+          fontFamily: 'Arial, sans-serif',
+          background: '#f8fafc',
+          color: '#111827',
+        }}
+      >
+        <h2>YatraFlow loading error</h2>
+
+        <p>
+          Something went wrong while loading your demo data.
+        </p>
+
+        <pre
+          style={{
+            whiteSpace: 'pre-wrap',
+            background: '#ffffff',
+            padding: '16px',
+            borderRadius: '12px',
+            border: '1px solid #e5e7eb',
+            overflow: 'auto',
+          }}
+        >
+          {error.message}
+        </pre>
+      </div>
+    )
   }
+
+  if (!data) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontFamily: 'Arial, sans-serif',
+          background: '#f8fafc',
+          color: '#111827',
+          fontSize: '18px',
+        }}
+      >
+        Loading YatraFlow...
+      </div>
+    )
+  }
+
+  // -------------------------
+  // Leads
+  // -------------------------
+
+  function addLead(lead) {
+    setData((prev) => ({
+      ...prev,
+      leads: [
+        {
+          ...lead,
+          id: uid('lead'),
+        },
+        ...prev.leads,
+      ],
+    }))
+  }
+
   function updateLead(id, updates) {
     setData((prev) => ({
       ...prev,
-      leads: prev.leads.map((l) => (l.id === id ? { ...l, ...updates } : l)),
+      leads: prev.leads.map((lead) =>
+        lead.id === id
+          ? { ...lead, ...updates }
+          : lead
+      ),
     }))
   }
+
   function deleteLead(id) {
-    setData((prev) => ({ ...prev, leads: prev.leads.filter((l) => l.id !== id) }))
+    setData((prev) => ({
+      ...prev,
+      leads: prev.leads.filter(
+        (lead) => lead.id !== id
+      ),
+    }))
   }
 
-  // ---- Follow-ups ----
-  function addFollowUp(fu) {
-    setData((prev) => ({ ...prev, followUps: [{ ...fu, id: uid('fu') }, ...prev.followUps] }))
+  // -------------------------
+  // Follow Ups
+  // -------------------------
+
+  function addFollowUp(followUp) {
+    setData((prev) => ({
+      ...prev,
+      followUps: [
+        {
+          ...followUp,
+          id: uid('fu'),
+        },
+        ...prev.followUps,
+      ],
+    }))
   }
+
   function updateFollowUp(id, updates) {
     setData((prev) => ({
       ...prev,
-      followUps: prev.followUps.map((f) => (f.id === id ? { ...f, ...updates } : f)),
+      followUps: prev.followUps.map((followUp) =>
+        followUp.id === id
+          ? { ...followUp, ...updates }
+          : followUp
+      ),
     }))
   }
+
   function deleteFollowUp(id) {
-    setData((prev) => ({ ...prev, followUps: prev.followUps.filter((f) => f.id !== id) }))
+    setData((prev) => ({
+      ...prev,
+      followUps: prev.followUps.filter(
+        (followUp) => followUp.id !== id
+      ),
+    }))
   }
 
-  // ---- Quotations ----
-  function addQuotation(quo) {
-    setData((prev) => ({ ...prev, quotations: [{ ...quo, id: uid('quo') }, ...prev.quotations] }))
+  // -------------------------
+  // Quotations
+  // -------------------------
+
+  function addQuotation(quotation) {
+    setData((prev) => ({
+      ...prev,
+      quotations: [
+        {
+          ...quotation,
+          id: uid('quo'),
+        },
+        ...prev.quotations,
+      ],
+    }))
   }
+
   function updateQuotation(id, updates) {
     setData((prev) => ({
       ...prev,
-      quotations: prev.quotations.map((q) => (q.id === id ? { ...q, ...updates } : q)),
+      quotations: prev.quotations.map((quotation) =>
+        quotation.id === id
+          ? { ...quotation, ...updates }
+          : quotation
+      ),
     }))
   }
+
   function deleteQuotation(id) {
-    setData((prev) => ({ ...prev, quotations: prev.quotations.filter((q) => q.id !== id) }))
+    setData((prev) => ({
+      ...prev,
+      quotations: prev.quotations.filter(
+        (quotation) => quotation.id !== id
+      ),
+    }))
   }
+
   function convertQuotationToBooking(quotationId) {
     setData((prev) => {
-      const quo = prev.quotations.find((q) => q.id === quotationId)
-      if (!quo) return prev
+      const quotation = prev.quotations.find(
+        (q) => q.id === quotationId
+      )
+
+      if (!quotation) {
+        return prev
+      }
+
       const newBooking = {
         id: uid('book'),
-        quotationId: quo.id,
-        customerName: quo.customerName,
-        phone: quo.phone,
-        destination: quo.destination,
-        amount: quo.amount,
+        quotationId: quotation.id,
+        customerName: quotation.customerName,
+        phone: quotation.phone,
+        destination: quotation.destination,
+        amount: quotation.amount,
         status: 'Confirmed',
-        travelDate: quo.validTill,
+        travelDate: quotation.validTill,
         createdAt: new Date().toISOString(),
         itinerary: [],
       }
+
       return {
         ...prev,
+
         quotations: prev.quotations.map((q) =>
-          q.id === quotationId ? { ...q, status: 'Accepted' } : q
+          q.id === quotationId
+            ? {
+                ...q,
+                status: 'Accepted',
+              }
+            : q
         ),
-        bookings: [newBooking, ...prev.bookings],
+
+        bookings: [
+          newBooking,
+          ...prev.bookings,
+        ],
       }
     })
   }
 
-  // ---- Bookings ----
+  // -------------------------
+  // Bookings
+  // -------------------------
+
   function updateBooking(id, updates) {
     setData((prev) => ({
       ...prev,
-      bookings: prev.bookings.map((b) => (b.id === id ? { ...b, ...updates } : b)),
+      bookings: prev.bookings.map((booking) =>
+        booking.id === id
+          ? {
+              ...booking,
+              ...updates,
+            }
+          : booking
+      ),
     }))
   }
+
   function deleteBooking(id) {
-    setData((prev) => ({ ...prev, bookings: prev.bookings.filter((b) => b.id !== id) }))
+    setData((prev) => ({
+      ...prev,
+      bookings: prev.bookings.filter(
+        (booking) => booking.id !== id
+      ),
+    }))
   }
 
-  // ---- Payments ----
+  // -------------------------
+  // Payments
+  // -------------------------
+
   function addPayment(payment) {
-    setData((prev) => ({ ...prev, payments: [{ ...payment, id: uid('pay') }, ...prev.payments] }))
+    setData((prev) => ({
+      ...prev,
+      payments: [
+        {
+          ...payment,
+          id: uid('pay'),
+        },
+        ...prev.payments,
+      ],
+    }))
   }
+
   function updatePayment(id, updates) {
     setData((prev) => ({
       ...prev,
-      payments: prev.payments.map((p) => (p.id === id ? { ...p, ...updates } : p)),
+      payments: prev.payments.map((payment) =>
+        payment.id === id
+          ? {
+              ...payment,
+              ...updates,
+            }
+          : payment
+      ),
     }))
   }
 
-  // ---- Customers ----
+  // -------------------------
+  // Customers
+  // -------------------------
+
   function addCustomer(customer) {
-    setData((prev) => ({ ...prev, customers: [{ ...customer, id: uid('cust') }, ...prev.customers] }))
+    setData((prev) => ({
+      ...prev,
+      customers: [
+        {
+          ...customer,
+          id: uid('cust'),
+        },
+        ...prev.customers,
+      ],
+    }))
   }
+
   function updateCustomer(id, updates) {
     setData((prev) => ({
       ...prev,
-      customers: prev.customers.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+      customers: prev.customers.map((customer) =>
+        customer.id === id
+          ? {
+              ...customer,
+              ...updates,
+            }
+          : customer
+      ),
     }))
   }
+
   function deleteCustomer(id) {
-    setData((prev) => ({ ...prev, customers: prev.customers.filter((c) => c.id !== id) }))
+    setData((prev) => ({
+      ...prev,
+      customers: prev.customers.filter(
+        (customer) => customer.id !== id
+      ),
+    }))
   }
 
-  // ---- Tasks (general, separate from follow-ups) ----
+  // -------------------------
+  // Tasks
+  // -------------------------
+
   function addTask(task) {
-    setData((prev) => ({ ...prev, tasks: [{ ...task, id: uid('task') }, ...prev.tasks] }))
+    setData((prev) => ({
+      ...prev,
+      tasks: [
+        {
+          ...task,
+          id: uid('task'),
+        },
+        ...prev.tasks,
+      ],
+    }))
   }
+
   function updateTask(id, updates) {
     setData((prev) => ({
       ...prev,
-      tasks: prev.tasks.map((t) => (t.id === id ? { ...t, ...updates } : t)),
+      tasks: prev.tasks.map((task) =>
+        task.id === id
+          ? {
+              ...task,
+              ...updates,
+            }
+          : task
+      ),
     }))
   }
+
   function deleteTask(id) {
-    setData((prev) => ({ ...prev, tasks: prev.tasks.filter((t) => t.id !== id) }))
+    setData((prev) => ({
+      ...prev,
+      tasks: prev.tasks.filter(
+        (task) => task.id !== id
+      ),
+    }))
   }
 
-  // ---- Packages ----
+  // -------------------------
+  // Packages
+  // -------------------------
+
   function addPackage(pkg) {
-    setData((prev) => ({ ...prev, packages: [{ ...pkg, id: uid('pkg') }, ...prev.packages] }))
+    setData((prev) => ({
+      ...prev,
+      packages: [
+        {
+          ...pkg,
+          id: uid('pkg'),
+        },
+        ...prev.packages,
+      ],
+    }))
   }
+
   function updatePackage(id, updates) {
     setData((prev) => ({
       ...prev,
-      packages: prev.packages.map((p) => (p.id === id ? { ...p, ...updates } : p)),
+      packages: prev.packages.map((pkg) =>
+        pkg.id === id
+          ? {
+              ...pkg,
+              ...updates,
+            }
+          : pkg
+      ),
     }))
   }
+
   function deletePackage(id) {
-    setData((prev) => ({ ...prev, packages: prev.packages.filter((p) => p.id !== id) }))
+    setData((prev) => ({
+      ...prev,
+      packages: prev.packages.filter(
+        (pkg) => pkg.id !== id
+      ),
+    }))
   }
 
-  // ---- Itineraries (day plans attached to a booking) ----
+  // -------------------------
+  // Itinerary
+  // -------------------------
+
   function setItineraryDays(bookingId, days) {
     setData((prev) => ({
       ...prev,
-      bookings: prev.bookings.map((b) => (b.id === bookingId ? { ...b, itinerary: days } : b)),
+      bookings: prev.bookings.map((booking) =>
+        booking.id === bookingId
+          ? {
+              ...booking,
+              itinerary: days,
+            }
+          : booking
+      ),
     }))
   }
-
-  if (!data) return null
 
   return (
     <DataContext.Provider
       value={{
         ...data,
-        addLead, updateLead, deleteLead,
-        addFollowUp, updateFollowUp, deleteFollowUp,
-        addQuotation, updateQuotation, deleteQuotation, convertQuotationToBooking,
-        updateBooking, deleteBooking,
-        addPayment, updatePayment,
-        addCustomer, updateCustomer, deleteCustomer,
-        addTask, updateTask, deleteTask,
-        addPackage, updatePackage, deletePackage,
+
+        addLead,
+        updateLead,
+        deleteLead,
+
+        addFollowUp,
+        updateFollowUp,
+        deleteFollowUp,
+
+        addQuotation,
+        updateQuotation,
+        deleteQuotation,
+        convertQuotationToBooking,
+
+        updateBooking,
+        deleteBooking,
+
+        addPayment,
+        updatePayment,
+
+        addCustomer,
+        updateCustomer,
+        deleteCustomer,
+
+        addTask,
+        updateTask,
+        deleteTask,
+
+        addPackage,
+        updatePackage,
+        deletePackage,
+
         setItineraryDays,
       }}
     >
@@ -189,7 +513,13 @@ export function DataProvider({ children }) {
 }
 
 export function useData() {
-  const ctx = useContext(DataContext)
-  if (!ctx) throw new Error('useData must be used within DataProvider')
-  return ctx
+  const context = useContext(DataContext)
+
+  if (!context) {
+    throw new Error(
+      'useData must be used within DataProvider'
+    )
+  }
+
+  return context
 }
